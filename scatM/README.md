@@ -1,3 +1,3 @@
 # scatM
-## Lib - music lib 
-## NoteAnalysis - Visualisation
+### Lib - music lib 
+### NoteAnalysis - Visualisation
