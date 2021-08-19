@@ -26,6 +26,9 @@ dependencies:
 - haskore
 - text
 - hvega
+- split
+- binary
+- directory
 
 library:
   source-dirs: src

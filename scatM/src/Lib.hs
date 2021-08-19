@@ -9,7 +9,7 @@ module Lib
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Builder as B
 import Data.Foldable
-import Data.List
+import Data.List.Split
 import Data.Text(pack,unpack,split,Text)
 import System.Process
 import Text.Printf
@@ -25,6 +25,7 @@ import Haskore.Example.Guitar
 import Haskore.Interface.MIDI.Render(fileFromGeneralMIDIMusic, midi)
 import Medium.Controlled.List as MCL
 import NoteAnalyse
+import Dismantling
 
 
 --import OpenAL
@@ -34,6 +35,10 @@ import NoteAnalyse
 type Samples = Float
 type Seconds = Float
 type Hz = Float
+
+tsvParser :: String -> String
+tsvParser line = (++) "Octave Note PitchVolume PitchLenght Spacing \n" 
+						$ foldr1 (++) [ foldr ((++) . (++) " ") "\n" $ Data.List.Split.splitOneOf "onvl" row  | row <-  Data.List.Split.splitOneOf "/" line ]
 
 outputFilePath :: FilePath 
 outputFilePath = "sinWave.bin"
@@ -132,6 +137,7 @@ plsSound  =   MCL.Primitive atom
 		noteBdy = HMR.Tone instr pitch
 		note = flip HMR.Note noteBdy $ toRational 1.1 
 		atom = HMusic.Atom bn $ Just note
+
 ppSound =  MCL.Primitive atom
 	where
 		instr = Flute
@@ -158,18 +164,19 @@ sint :: IO ()
 sint = do  
 	putStrLn "First stage!\nFlute MIDI interpritation. Command music line:[onvl...]\n  - o(1-4) --- octave\n  - n(1-21) --- every pitch note\n  - v(rational number) --- pitch volume\n  - l(1-17) --- pitch lenght\n  - /(1-4) --- spacing"
 	sequence <- getLine
-	fef <- return $ decodeF sequence
-	toFile "kuki.midi" $ midi $ foldl (+:+) plsSound fef
-	imagination "f1.html"
-	print "Enough"
-	--toFile "kusi.midi" $ midi $ plsSound 
+	writeFile "dataTable.tsv" $ tsvParser sequence
+	--fef <- return $ decodeF sequence
+	--toFile "kuki.midi" $ midi $ foldl (+:+) plsSound fef
+
+	putStrLn "Enough"
+	--a <- getLine
+	--return ()
+	--first "dataTable.tsv"
+	--getSoundFolder "D:/code/Haskell/bin/scatM/originS"
 	
-
-
-
-	--play =<< (noteLine [])
-	--	where noteLine x = do
-	--		not <- fmap read $ getLine :: IO Int
-	--		if not == 0 then return x else noteLine (x ++ [not])
+	play =<< (noteLine [])
+		where noteLine x = do
+			not <- fmap read $ getLine :: IO Int
+			if not == 0 then return x else noteLine (x ++ [not])
 			
 
