@@ -24,14 +24,15 @@ import Haskore.Basic.Pitch as HBP
 import Haskore.Example.Guitar
 import Haskore.Interface.MIDI.Render(fileFromGeneralMIDIMusic, midi)
 import Medium.Controlled.List as MCL
+import Data.Massiv.Core.List
 import NoteAnalyse
 import Dismantling
 
 
---import OpenAL
---import Sound
+-- part with single music handling:
 
 -- params
+
 type Samples = Float
 type Seconds = Float
 type Hz = Float
@@ -69,8 +70,6 @@ wave note = map (* volume) $ map sin $ map (* step) [0.0 .. sampleRate * duratio
 
 melody :: [Int] -> [Float]
 melody  line = wave =<< line
-
--- melody1 =  foldl ++  map wave [1,2,3]
  
 someFunc :: FilePath -> [Int] -> IO ()
 someFunc path not = B.writeFile outputFilePath $ B.toLazyByteString $ fold $ map B.floatLE $ melody not
@@ -82,7 +81,8 @@ play not = do
 	return ()
 
 
--- flute representation inline:
+-- flute representation in MIDI type inline:
+
 fullFlutesScope :: [HBP.T]
 fullFlutesScope = [(x,y) | x <- [1,2,3,4], y <- [Cf,C,Cs,Df,D,Ds,Ef,E,Es,Ff,F,Fs,Gf,G,Gs,Af,A,As,Bf,B,Bs]]
 
@@ -162,21 +162,31 @@ decodeF sequ@(x:xs) = let linelist = Data.Text.split (\x -> x == 'o' || x == 'n'
 
 sint :: IO ()
 sint = do  
-	putStrLn "First stage!\nFlute MIDI interpritation. Command music line:[onvl...]\n  - o(1-4) --- octave\n  - n(1-21) --- every pitch note\n  - v(rational number) --- pitch volume\n  - l(1-17) --- pitch lenght\n  - /(1-4) --- spacing"
-	sequence <- getLine
-	writeFile "dataTable.tsv" $ tsvParser sequence
-	--fef <- return $ decodeF sequence
-	--toFile "kuki.midi" $ midi $ foldl (+:+) plsSound fef
+			--putStrLn "First stage!\nFlute MIDI interpritation. Command music line:[onvl...]\n  - o(1-4) --- octave\n  - n(1-21) --- every pitch note\n  - v(rational number) --- pitch volume\n  - l(1-17) --- pitch lenght\n  - /(1-4) --- spacing"
+			--sequence <- getLine
+			--writeFile "dataTable.tsv" $ tsvParser sequence
+			--fef <- return $ decodeF sequence
+			--toFile "kuki.midi" $ midi $ foldl (+:+) plsSound fef
+			putStrLn "Enough"
+			--a <- getLine
+			--return ()
+			--first "dataTable.tsv"
+			folderS <- return "E:/aplications/Haskell/bin/scatM/originS"
+			contents <- getSoundFolder folderS
+			putStrLn $ "reading from " ++ folderS
+			--putStrLn $ show $ findCollection "SampleRate" $ head contents
+			--putStrLn $ show $ findCollection "SizeData" $ head contents
+			--putStrLn $ show $ ko $ head contents
+			--putStrLn $ show $ si $ getSubstrate $ head contents
+			putStrLn $ show $  multipliers $ 312 * 3 * 5
+			putStrLn "Done" 
+			--imagination2 "E:/aplications/Haskell/bin/scatM/plotV1.html" $ gete $ getSubstrate $ head contents
+			putStrLn "Done" 
+			return ()
 
-	putStrLn "Enough"
-	--a <- getLine
-	--return ()
-	--first "dataTable.tsv"
-	--getSoundFolder "D:/code/Haskell/bin/scatM/originS"
-	
-	play =<< (noteLine [])
-		where noteLine x = do
-			not <- fmap read $ getLine :: IO Int
-			if not == 0 then return x else noteLine (x ++ [not])
+	--play =<< (noteLine [])
+	--	where noteLine x = do
+	--		not <- fmap read $ getLine :: IO Int
+	--		if not == 0 then return x else noteLine (x ++ [not])
 			
 

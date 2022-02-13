@@ -2,7 +2,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Dismantling(getSoundFolder,
-	folderCollection
+	folderCollection,
+	findCollection,
+	getSubstrate,
+	WaveLifeForm(Description, Body)
 	) where
 
 import Data.Text(Text,unpack,take)
@@ -12,14 +15,19 @@ import Text.Printf
 --import Data.Vector.Unboxed as V
 import qualified Data.ByteString as B
 import Data.ByteString.Lazy(fromStrict)
-import System.IO(openBinaryFile,IOMode(ReadMode),hSetBinaryMode,putStrLn,hClose)
-import System.Directory
-import Foreign.Ptr
-import Foreign.Storable
 import Data.Binary 
 import Data.Binary.Get
 import Data.Binary.Builder
 import Data.String(fromString)
+import System.IO(openBinaryFile,IOMode(ReadMode),hSetBinaryMode,putStrLn,hClose)
+import System.Directory
+import Foreign.Ptr
+import Foreign.Storable
+import qualified Data.Massiv.Array as A
+import Data.Massiv.Core
+import Data.Massiv.Array.Delayed
+import Data.Massiv.Array.Manifest
+import Data.Int.Int24
 
 -- SizeData + 36
 type ChunkSize = Int32
@@ -52,17 +60,29 @@ instance Show (WaveLifeForm a) where
 	--show (Body path a) = "|\n"
 	show (Body path a) = path ++ "|\n" 
 
-toFormEmpty :: WPath ->  WaveLifeForm Int32
-toFormEmpty a = Body a 0 
-
-addAttr :: WaveLifeForm Int32 -> (String, Int32) -> WaveLifeForm Int32
-addAttr tail (name, value)  = Description name value tail 
+toFormEmpty :: WPath ->  WaveLifeForm (A.Array U Ix1 Double )
+toFormEmpty a = Body a $ A.makeArrayR U Seq (A.Sz1 1) $ \ i -> fromIntegral i
 
 folderCollection :: FilePath -> IO [FilePath]
 folderCollection =  getDirectoryContents
 
-getWaveTitle :: (Int, Int, Int) -> WaveLifeForm Int32 ->  Get (WaveLifeForm Int32)
-getWaveTitle (a1, a2, a3) c = do 
+findCollection :: (Fractional a , Num a) => String -> WaveLifeForm (A.Array U Ix1 Double ) -> a 
+findCollection name (Description a b c) = if a == name then fromIntegral b else findCollection name c
+findCollection name (Body a b) = 0  
+
+getPath :: WaveLifeForm (A.Array U Ix1 Double ) -> WPath
+getPath (Body wPath _) = wPath
+getPath (Description a b c) = getPath c
+
+getSubstrate :: WaveLifeForm (A.Array U Ix1 Double ) -> A.Array U Ix1 Double
+getSubstrate (Description a b c) = getSubstrate c
+getSubstrate (Body a datt) = datt
+
+data Sampling = Sampling { one :: Int8 , two :: Int8 , three :: Int8} 
+data Pseudo = Pseudo {oone :: Int32}
+
+getWaveTitle :: (Int, Int, Int) -> WaveLifeForm (A.Array U Ix1 Double ) ->  Get (WaveLifeForm (A.Array U Ix1 Double ))
+getWaveTitle (a1, a2, a3) (Body path _) = do 
 				skip $ a1
 				size <- getInt32le
 				--skip $ a2 - a1
@@ -83,32 +103,37 @@ getWaveTitle (a1, a2, a3) c = do
 				cbSize <- getInt16le
 				skip $ a3 - a2 - 4 - 2 - 2 - 4 - 4 - 2 - 2 -2
 				sizeData <- getInt32le
-				return $ snd $ foldr (\(a1,b1) (a2,b2) -> ("empty", Description a1 b1 b2) ) ("body", c)
+				lsit <- decoderIssue
+				return $ snd $ foldr (\(a1,b1) (a2,b2) -> ("empty", Description a1 b1 b2) ) ("body",Body path $ A.fromList Seq lsit)
 						$ zip ["ChunkSize", "SubchunkSize", "AudioFormat", "NumChannels", "SampleRate", "ByteRate", "BlockAlign","BitsPerSample","CbSize","SizeData"] 
 								[size, subChSize, convertTo32 audioFormat,convertTo32 numCHans, sampRate, bRAte, convertTo32 blockA, convertTo32 biPeSamp, convertTo32 cbSize,sizeData]
-				--return $ (Description "SubchunkSize" (convertTo32 subChSize) (Description "ChunkSize" size c))
-			where
+		where
+			decoderIssue = let deco =  do
+										empty <- isEmpty
+										if empty
+										 	then return []
+											else do
+												digital <- Sampling <$> getInt8 <*> getInt8 <*> getInt8
+												deco >>= \x -> return $ ((fromIntegral $ (one digital)*1000000 + (two digital)*1000 + (three digital) :: Double) : x) 
+						   in deco
 			convertTo32 :: Int16 -> Int32
 			convertTo32 num = fromIntegral num :: Int32		
 
-getSoundFolder :: FilePath -> IO ()
+getSoundFolder :: FilePath -> IO [WaveLifeForm (A.Array U Ix1 Double )]
 getSoundFolder root = do
 					rootItems <- listDirectory root
 					wFiles <- return $ (\x -> toFormEmpty $ (++) ((++) root "/")  x) <$> rootItems
 					tampl <- getTamplWaveF $ getPath $ head wFiles
 					contents <-sequence $ map (\ x -> singleThread x tampl) wFiles
-					System.IO.putStrLn $ show contents
-					return () 
+					return contents 
 				where 
-				singleThread :: WaveLifeForm Int32 -> (Int, Int, Int) -> IO (WaveLifeForm Int32)	
+				singleThread :: WaveLifeForm (A.Array U Ix1 Double ) -> (Int, Int, Int) -> IO (WaveLifeForm (A.Array U Ix1 Double ))	
 				singleThread c w = do 
 										handl <- openBinaryFile (getPath c) ReadMode
 										hSetBinaryMode handl True
 										fullFile <- B.hGetContents handl
 										return $ runGet (getWaveTitle w c) $ fromStrict fullFile								  	
-				getPath :: WaveLifeForm Int32 -> WPath
-				getPath (Body wPath _) = wPath
-				getPath (Description a b c) = getPath c
+			
 				getTamplWaveF :: WPath -> IO (Int, Int, Int) 
 				getTamplWaveF path = do 
 								handl <- openBinaryFile path ReadMode
@@ -117,18 +142,5 @@ getSoundFolder root = do
 								waveAttr <- let attr = fromString "RIFF" :: B.ByteString in return $ (+) 4 $ B.length $ fst $ B.breakSubstring attr fullFile
 								fmlAttr <- let attr = fromString "fmt " :: B.ByteString in return $ (+) 4 $ B.length $ fst $ B.breakSubstring attr fullFile
 								dataAttr <- let attr = fromString "data" :: B.ByteString in return $ (+) 4 $ B.length $ fst $ B.breakSubstring attr fullFile
-								return (waveAttr, fmlAttr, dataAttr)	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+								return (waveAttr, fmlAttr, dataAttr)
+				

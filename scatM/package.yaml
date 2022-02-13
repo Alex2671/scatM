@@ -22,6 +22,7 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - bytestring
+- typed-process
 - process
 - haskore
 - text
@@ -29,6 +30,8 @@ dependencies:
 - split
 - binary
 - directory
+- massiv
+- word24
 
 library:
   source-dirs: src

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed"></script>
+</head>
+<body>
+<div id="vis"></div>
+<script type="text/javascript">
+  var spec = {"width":1000,"background":"rgba(0, 0, 0, 0.05)","$schema":"https://vega.github.io/schema/vega-lite/v4.json","encoding":{"x":{"type":"quantitative","field":"Time"},"color":{"field":"Origin"},"y":{"type":"quantitative","field":"Amplitude"}},"data":{"values":[{"Amplitude":-35.599999999999994,"Time":1},{"Amplitude":-6.7351141184958045,"Time":2},{"Amplitude":-4.382499611551099,"Time":3},{"Amplitude":-3.95618376744343,"Time":4},{"Amplitude":-3.8099843497553767,"Time":5},{"Amplitude":-3.735341547691022,"Time":6},{"Amplitude":-3.6900330389999647,"Time":7},{"Amplitude":-3.6608260571032507,"Time":8},{"Amplitude":-3.6415788328606613,"Time":9},{"Amplitude":-3.6287333654177005,"Time":10},{"Amplitude":-3.6200606171020313,"Time":11},{"Amplitude":-3.6141350774468215,"Time":12},{"Amplitude":-3.6100387633816946,"Time":13},{"Amplitude":-3.6071761108618174,"Time":14},{"Amplitude":-3.6051565398540544,"Time":15},{"Amplitude":-3.6037204294397713,"Time":16},{"Amplitude":-3.6026926673068886,"Time":17},{"Amplitude":-3.601953433779914,"Time":18},{"Amplitude":-3.6014196611273883,"Time":19},{"Amplitude":-3.60103310449203,"Time":20}]},"height":1000,"mark":{"type":"circle","tooltip":{"content":"encoding"}}};
+  vegaEmbed('#vis', spec).then(function(result) {
+  // Access the Vega view instance (https://vega.github.io/vega/docs/api/view/) as result.view
+  }).catch(console.error);
+</script>
+</body>
+</html>

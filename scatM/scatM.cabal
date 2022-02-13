@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ca438ff22be9938c2e7279ccdcaab1ebfa72b35695449a38254a03133c482806
+-- hash: 1a7e215c7f9106c5562f25fb5d17bd540bce4430aca895493ba03ba60fccd707
 
 name:           scatM
 version:        0.1.0.0
@@ -41,9 +41,12 @@ library
     , directory
     , haskore
     , hvega
+    , massiv
     , process
     , split
     , text
+    , typed-process
+    , word24
   default-language: Haskell2010
 
 executable scatM-exe
@@ -60,10 +63,13 @@ executable scatM-exe
     , directory
     , haskore
     , hvega
+    , massiv
     , process
     , scatM
     , split
     , text
+    , typed-process
+    , word24
   default-language: Haskell2010
 
 test-suite scatM-test
@@ -81,8 +87,11 @@ test-suite scatM-test
     , directory
     , haskore
     , hvega
+    , massiv
     , process
     , scatM
     , split
     , text
+    , typed-process
+    , word24
   default-language: Haskell2010
