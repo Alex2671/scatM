@@ -10,6 +10,7 @@ module NoteAnalyse
     , ko
     , si
     , multipliers
+    , fFT
     ) where
 
 import Dismantling
@@ -88,15 +89,23 @@ sFT mas  = A.map realPart $ A.foldlInner (+) 0 $ A.zipWith (*) sec ind
 		sec = A.expandWithin Dim2 ( A.Sz1 (unSz $ A.size mas)) (\ a b -> a :+ 0) mas
 
 -- fast fourier alghorirm. Cooley- Tukey for every number, non power of 2. 
-fFT :: Array U Ix1 Double -> Array D Ix1 Double
-fFT mas = 
-	where
-		(n1, n2) = multipliers $ unSz $ A.size mas
-		k = A.makeArrayR D Seq (A.Sz (n1 :. n2)) $ \ ( a :. b) -> mas !? (a*n2 + b)   
-		j = A.makeArrayR D Seq (A.Sz (n2 :. n1)) $ \ ( a :. b) -> mas !? (n1*a + b)   
-		ind = A.makeArrayR D Seq (A.Sz (n1 :> n2 :. n1)) $ \(z :> y :. x) -> let [k,r,n] = map fromIntegral [z,y,(unSz $ A.size mas)] in (1/n :+ 0) * exp ( 0 :+ (- 2 * pi * k * r / n))
-		sec = A.expandWithin Dim2 ( A.Sz1 (unSz $ A.size mas)) (\ a b -> a :+ 0) mas
 
+fFT :: Array U Ix1 Double -> Array D Ix1 Double
+fFT mas = A.flatten $ A.map realPart $ A.map ((1/(nN) :+ 0) *) $  sec $ A.computeAs U $ ind
+	where	
+		(n1, n2) = multipliers $ unSz $ A.size mas
+		nA1 = fromIntegral n1 :: Double
+		nA2 = fromIntegral n2 :: Double
+		nN = fromIntegral $ n1 * n2 :: Double
+		umas = A.computeAs U mas
+		j = A.makeArrayR U Seq (A.Sz (n2 :. n1)) $ \ ( a :. b) -> umas A.! (n1*a + b)
+		ind = A.foldlWithin Dim2 (+) (0 :+ 0) $ A.makeArrayR D Seq (A.Sz (n2 :> n2 :. n1 )) $ \(x :> y :. z) -> let [k0I,j1I,j0I] = map fromIntegral [x,y,z] in 
+																							let vJ = j A.! y :. z
+																								in 	(vJ :+ 0) * exp ( 0 :+ (- 2 * pi * j1I * k0I * nA1 / nN)) 
+		sec :: Array U Ix2 (Complex Double) -> Array D Ix2 (Complex Double) 
+		sec k = A.foldlWithin Dim1 (+) (0 :+ 0) $ A.makeArrayR D Seq (A.Sz (n1 :> n2 :. n2 )) $ \(x :> y :. z) -> let [k1I,k0I,j0I] = map fromIntegral [x,y,z] in 
+																							let vK = k A.! y :. z 
+																								in 	vK * exp ( 0 :+ (- 2 * pi * j0I * k1I * nA2 / nN)) * exp (0 :+ (- 2 * pi * j0I * k0I / nN))
 
 multipliers :: Int -> (Int , Int)
 multipliers doll = let fil q x = if x `mod` q == 0 then q : fil q (x `div` q) else []
